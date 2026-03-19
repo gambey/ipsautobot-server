@@ -1,0 +1,19 @@
+---
+description: Keep api.md and Swagger in sync when changing APIs
+globs: src/routes/**/*.js, src/config/swagger.js, docs/openapi.json
+alwaysApply: false
+---
+
+# API 文档同步规则
+
+新增、删除或修改任何 HTTP 接口（路径、方法、请求/响应体）时，必须同时完成以下两项：
+
+1. **更新 OpenAPI 定义**
+   - 在对应路由文件中修改或补充 JSDoc（`@openapi` 块），或更新 `src/config/swagger.js` 中的 `definition`。
+   - 确保 Swagger UI（`/api-docs`）中的展示与实现一致。
+
+2. **重新生成 api.md**
+   - 在项目根目录执行：`npm run docs:api-md`
+   - 将生成的 `api.md` 纳入提交，便于与其他客户端对齐接口。
+
+**说明**：`api.md` 由 OpenAPI 规范自动生成，勿手动编辑；接口变更后务必重新运行 `npm run docs:api-md` 以保持文档一致。

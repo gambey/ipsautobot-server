@@ -1,0 +1,34 @@
+{
+  "name": "ips_autobot_svr",
+  "version": "1.0.0",
+  "description": "Node.js server with Express, mysql2, Swagger, RSA login, admin/user management, recharge",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "docs:api-md": "node scripts/generate-api-md.js",
+    "db:init": "node scripts/init-db.js",
+    "db:seed": "node scripts/seed-admin.js",
+    "db:migrate-user-username": "node scripts/migrate-add-user-username.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.6.5",
+    "node-rsa": "^1.1.1",
+    "openapi-to-md": "^1.1.1",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.0",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  }
+}

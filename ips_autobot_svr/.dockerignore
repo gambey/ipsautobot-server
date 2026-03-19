@@ -1,0 +1,12 @@
+node_modules
+logs
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+*.log
+.cursor
+README.md
+Dockerfile
+.dockerignore

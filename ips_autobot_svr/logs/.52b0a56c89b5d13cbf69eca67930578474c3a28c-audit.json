@@ -1,0 +1,20 @@
+{
+    "keep": {
+        "days": false,
+        "amount": 5
+    },
+    "auditLog": "E:\\workspace\\ipspool\\server\\ips_autobot_svr\\logs\\.52b0a56c89b5d13cbf69eca67930578474c3a28c-audit.json",
+    "files": [
+        {
+            "date": 1773284470529,
+            "name": "E:\\workspace\\ipspool\\server\\ips_autobot_svr\\logs\\user-login-2026-03-12.log",
+            "hash": "0380a7a544c2d874a05ed5df7e23df773b393c814463810d1c350fcbcf3c8eea"
+        },
+        {
+            "date": 1773362263626,
+            "name": "E:\\workspace\\ipspool\\server\\ips_autobot_svr\\logs\\user-login-2026-03-13.log",
+            "hash": "2319c60e13bcd126045d020b1f53cf97f168414c175f10de2a7478afbaf4f78d"
+        }
+    ],
+    "hashType": "sha256"
+}
