@@ -40,10 +40,22 @@ function requireUserOrAdmin(req, res, next) {
   return res.status(403).json({ code: 403, message: 'Authentication required' });
 }
 
+function requireUser(req, res, next) {
+  if (req.auth && req.auth.role === 'user') return next();
+  return res.status(403).json({ code: 403, message: 'User role required' });
+}
+
+function requireSuperAdmin(req, res, next) {
+  if (req.auth && req.auth.role === 'admin' && Number(req.auth.adminType) === 0) return next();
+  return res.status(403).json({ code: 403, message: 'Super admin required' });
+}
+
 module.exports = {
   sign,
   verify,
   authMiddleware,
   requireAdmin,
   requireUserOrAdmin,
+  requireUser,
+  requireSuperAdmin,
 };

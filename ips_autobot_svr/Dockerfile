@@ -12,6 +12,9 @@ COPY src ./src
 COPY scripts ./scripts
 COPY docs ./docs
 COPY api.md ./
+# Client bundle for GET /api/client-settings.zip (must exist in build context)
+COPY client_settings.zip ./
+COPY client_settings_yifei.zip ./
 
 EXPOSE 3000
 

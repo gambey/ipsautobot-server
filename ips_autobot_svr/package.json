@@ -9,7 +9,13 @@
     "docs:api-md": "node scripts/generate-api-md.js",
     "db:init": "node scripts/init-db.js",
     "db:seed": "node scripts/seed-admin.js",
-    "db:migrate-user-username": "node scripts/migrate-add-user-username.js"
+    "db:migrate-user-username": "node scripts/migrate-add-user-username.js",
+    "db:migrate-user-mac": "node scripts/migrate-add-user-mac-addr.js",
+    "db:migrate-user-score": "node scripts/migrate-add-user-score.js",
+    "db:migrate-user-score-tiers": "node scripts/migrate-add-user-score-tiers.js",
+    "db:migrate-admin-type": "node scripts/migrate-add-admin-type.js",
+    "db:migrate-multi-app": "node scripts/migrate-multi-app.js",
+    "db:normalize-user-expire-eod": "node scripts/normalize-user-expire-eod.js"
   },
   "keywords": [],
   "author": "",

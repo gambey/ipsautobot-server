@@ -2,7 +2,7 @@
 
 > Version 1.0.0
 
-Admin and user auth, logs, recharge APIs. Password fields use RSA encryption (GET /api/public-key).
+Admin and user auth, logs, recharge APIs. Multi-app zhiling/yifei — pass app where required. Password fields use RSA encryption (GET /api/public-key).
 
 
 ## Path Table
@@ -14,16 +14,26 @@ Admin and user auth, logs, recharge APIs. Password fields use RSA encryption (GE
 | POST | [/api/admin/login](#postapiadminlogin) | Admin login |
 | PUT | [/api/admin/password](#putapiadminpassword) | Change current admin password |
 | DELETE | [/api/admin/{id}](#deleteapiadminid) | Delete admin (admin only) |
+| GET | [/api/client-settings-yifei.zip](#getapiclient-settings-yifeizip) | Download yifei client settings archive |
+| GET | [/api/client-settings.zip](#getapiclient-settingszip) | Download bundled client settings archive |
 | GET | [/api/logs/admin-login](#getapilogsadmin-login) | List admin login logs (admin only) |
 | GET | [/api/logs/user-login](#getapilogsuser-login) | List user login logs (admin only) |
 | GET | [/api/public-key](#getapipublic-key) | Get RSA public key for password encryption |
 | GET | [/api/recharge](#getapirecharge) | List recharge records (admin sees all, user sees own) |
 | POST | [/api/recharge](#postapirecharge) | Create recharge record (admin or user) |
+| POST | [/api/score/change](#postapiscorechange) | Increase or deduct user score (admin only) |
+| GET | [/api/score/records](#getapiscorerecords) | List score records (admin sees all, user sees own) |
 | GET | [/api/users](#getapiusers) | List users (admin only) |
 | POST | [/api/users](#postapiusers) | Create user |
 | POST | [/api/users/login](#postapiuserslogin) | User login (by phone or username) |
+| GET | [/api/users/mac](#getapiusersmac) | Get bound MAC for current user or admin-specified user |
+| PUT | [/api/users/mac](#putapiusersmac) | Bind or update MAC (globally unique) |
+| POST | [/api/users/mac/verify](#postapiusersmacverify) | Verify MAC matches bound value (user JWT only) |
+| GET | [/api/users/me](#getapiusersme) | Get current user profile |
 | PUT | [/api/users/password](#putapiuserspassword) | Change password (no old password required; user self or admin for another user) |
+| PUT | [/api/users/{id}](#putapiusersid) | Update user profile fields (admin only; normal admin has limited fields) |
 | PUT | [/api/users/{id}/disable](#putapiusersiddisable) | Disable user (admin only) |
+| DELETE | [/api/users/{id}/mac](#deleteapiusersidmac) | Unbind user MAC (super admin only) |
 
 ## Reference Table
 
@@ -59,7 +69,7 @@ username?: string
 
 #### Responses
 
-- 200 Admin list
+- 200 Admin list (super admin only)
 
 ***
 
@@ -78,6 +88,8 @@ bearerAuth
 ```typescript
 {
   username: string
+  // 0=super admin, 1=normal admin
+  admin_type?: enum[0, 1]
   passwordEncrypted: string
   phone?: string
 }
@@ -85,7 +97,7 @@ bearerAuth
 
 #### Responses
 
-- 201 Admin created
+- 201 Admin created (super admin only)
 
 - 401 Unauthorized
 
@@ -110,7 +122,7 @@ Admin login
 
 #### Responses
 
-- 200 Login success, returns JWT and admin info
+- 200 Login success, returns JWT and admin info (includes admin_type)
 
 - 401 Invalid credentials
 
@@ -158,6 +170,80 @@ bearerAuth
 - 400 Cannot delete self or invalid id
 
 - 404 Admin not found
+
+***
+
+### [GET]/api/client-settings-yifei.zip
+
+- Summary  
+Download yifei client settings archive
+
+- Description  
+Returns client_settings_yifei.zip from the application root (same folder as package.json). Requires user JWT in Authorization Bearer header; admin tokens are rejected.
+
+- Security  
+bearerAuth  
+
+#### Responses
+
+- 200 ZIP file
+
+`application/zip`
+
+```typescript
+string
+```
+
+- 401 Missing, invalid, or expired token
+
+- 403 User role required (admin JWT not allowed)
+
+- 404 File not present on server
+
+`application/json`
+
+```typescript
+{
+  message?: string
+}
+```
+
+***
+
+### [GET]/api/client-settings.zip
+
+- Summary  
+Download bundled client settings archive
+
+- Description  
+Returns client_settings.zip from the application root (same folder as package.json), not process.cwd(). Requires user JWT in Authorization Bearer header; admin tokens are rejected.
+
+- Security  
+bearerAuth  
+
+#### Responses
+
+- 200 ZIP file
+
+`application/zip`
+
+```typescript
+string
+```
+
+- 401 Missing, invalid, or expired token
+
+- 403 User role required (admin JWT not allowed)
+
+- 404 File not present on server
+
+`application/json`
+
+```typescript
+{
+  message?: string
+}
+```
 
 ***
 
@@ -254,6 +340,10 @@ bearerAuth
 #### Parameters(Query)
 
 ```typescript
+app: enum[zhiling, yifei]
+```
+
+```typescript
 page?: integer //default: 1
 ```
 
@@ -297,6 +387,8 @@ bearerAuth
 
 ```typescript
 {
+  // Client app for recharge table
+  app: enum[zhiling, yifei]
   user_id?: integer
   // phone or username
   username?: string
@@ -310,6 +402,97 @@ bearerAuth
 - 201 Recharge record created
 
 - 404 User not found
+
+***
+
+### [POST]/api/score/change
+
+- Summary  
+Increase or deduct user score (admin only)
+
+- Security  
+bearerAuth  
+
+#### RequestBody
+
+- application/json
+
+```typescript
+{
+  // Client app for score columns and score_record
+  app: enum[zhiling, yifei]
+  // Target user id (or use phone)
+  user_id?: integer
+  // Target user phone (or use user_id)
+  phone?: string
+  // Score tier days
+  tier_days: enum[30, 90, 180, 365]
+  // Optional override amount; defaults to selected tier score from users table for this app
+  score_change?: integer
+  // 0=add, 1=deduct
+  change_type: enum[0, 1]
+}
+```
+
+#### Responses
+
+- 201 Score changed and record created
+
+- 400 Bad request or insufficient score
+
+- 404 User not found
+
+***
+
+### [GET]/api/score/records
+
+- Summary  
+List score records (admin sees all, user sees own)
+
+- Security  
+bearerAuth  
+
+#### Parameters(Query)
+
+```typescript
+app: enum[zhiling, yifei]
+```
+
+```typescript
+page?: integer //default: 1
+```
+
+```typescript
+limit?: integer //default: 20
+```
+
+```typescript
+user_id?: integer
+```
+
+```typescript
+username?: string
+```
+
+```typescript
+phone?: string
+```
+
+```typescript
+change_type?: enum[0, 1]
+```
+
+```typescript
+start_date?: string
+```
+
+```typescript
+end_date?: string
+```
+
+#### Responses
+
+- 200 Paginated score records
 
 ***
 
@@ -363,6 +546,31 @@ last_login_to?: string
 
 - 200 User list
 
+`application/json`
+
+```typescript
+{
+  code?: integer
+  data: {
+    items: {
+      id?: integer
+      username?: string
+      phone?: string
+      status?: integer
+      created_at?: string
+      last_login_at?: string
+      // Per-app zhiling and yifei slices (MAC, score, tiers, member_type, member_expire_at)
+      clients: {
+        zhiling: {
+        }
+        yifei: {
+        }
+      }
+    }[]
+  }
+}
+```
+
 ***
 
 ### [POST]/api/users
@@ -380,14 +588,14 @@ Create user
   username?: string
   phone: string
   passwordEncrypted: string
-  // 0=normal 1=paid
+  // Initial member_type for zhiling client only; yifei starts as 0
   member_type?: enum[0, 1]
 }
 ```
 
 #### Responses
 
-- 201 User created
+- 201 User created; response includes clients.zhiling and clients.yifei defaults
 
 - 409 Phone already registered
 
@@ -414,11 +622,130 @@ User login (by phone or username)
 
 #### Responses
 
-- 200 Login success, returns JWT and user info
+- 200 Login success; user object has shared fields and clients.zhiling / clients.yifei
+
+`application/json`
+
+```typescript
+{
+  code?: integer
+  data: {
+    token?: string
+    user: {
+      id?: integer
+      username?: string
+      phone?: string
+      status?: integer
+      created_at?: string
+      clients: {
+      }
+      last_login_at?: string
+    }
+  }
+}
+```
 
 - 400 Phone or username and password required
 
 - 401 Invalid credentials
+
+***
+
+### [GET]/api/users/mac
+
+- Summary  
+Get bound MAC for current user or admin-specified user
+
+- Security  
+bearerAuth  
+
+#### Parameters(Query)
+
+```typescript
+app: enum[zhiling, yifei]
+```
+
+```typescript
+userId?: integer
+```
+
+#### Responses
+
+- 200 Current mac_addr for app or null
+
+- 400 Missing userId for admin
+
+***
+
+### [PUT]/api/users/mac
+
+- Summary  
+Bind or update MAC (globally unique)
+
+- Security  
+bearerAuth  
+
+#### RequestBody
+
+- application/json
+
+```typescript
+{
+  app: enum[zhiling, yifei]
+  mac_addr: string
+  // Admin only — target user id
+  userId?: integer
+}
+```
+
+#### Responses
+
+- 200 MAC bound for app
+
+- 400 Invalid MAC or missing userId for admin
+
+- 409 MAC already used by another user
+
+***
+
+### [POST]/api/users/mac/verify
+
+- Summary  
+Verify MAC matches bound value (user JWT only)
+
+- Security  
+bearerAuth  
+
+#### RequestBody
+
+- application/json
+
+```typescript
+{
+  app: enum[zhiling, yifei]
+  mac_addr: string
+}
+```
+
+#### Responses
+
+- 200 matched true/false per app; unbound returns matched false
+
+***
+
+### [GET]/api/users/me
+
+- Summary  
+Get current user profile
+
+- Security  
+bearerAuth  
+
+#### Responses
+
+- 200 Current user profile
+
+- 401 Unauthorized
 
 ***
 
@@ -448,6 +775,61 @@ bearerAuth
 
 ***
 
+### [PUT]/api/users/{id}
+
+- Summary  
+Update user profile fields (admin only; normal admin has limited fields)
+
+- Security  
+bearerAuth  
+
+#### RequestBody
+
+- application/json
+
+```typescript
+{
+  username?: string
+  phone?: string
+  status?: enum[0, 1]
+  clients: {
+    // Super-admin fields for zhiling; member_expire_at editable by admin
+    zhiling: {
+      member_type?: enum[0, 1]
+      member_expire_at?: string
+      member_expire_days?: integer
+      member_reduce_days?: integer
+      score?: integer
+      30d_score?: integer
+      90d_score?: integer
+      180d_score?: integer
+      365d_score?: integer
+      mac_addr?: string
+    }
+    yifei: {
+      member_type?: enum[0, 1]
+      member_expire_at?: string
+      member_expire_days?: integer
+      member_reduce_days?: integer
+      score?: integer
+      30d_score?: integer
+      90d_score?: integer
+      180d_score?: integer
+      365d_score?: integer
+      mac_addr?: string
+    }
+  }
+}
+```
+
+#### Responses
+
+- 200 User updated; data includes clients
+
+- 403 Admin required
+
+***
+
 ### [PUT]/api/users/{id}/disable
 
 - Summary  
@@ -459,6 +841,42 @@ bearerAuth
 #### Responses
 
 - 200 User disabled
+
+- 404 User not found
+
+***
+
+### [DELETE]/api/users/{id}/mac
+
+- Summary  
+Unbind user MAC (super admin only)
+
+- Security  
+bearerAuth  
+
+#### Parameters(Query)
+
+```typescript
+app: enum[zhiling, yifei]
+```
+
+#### Responses
+
+- 200 MAC cleared for app
+
+`application/json`
+
+```typescript
+{
+  code?: integer
+  data: {
+    id?: integer
+    mac_addr?: string
+  }
+}
+```
+
+- 403 Super admin required
 
 - 404 User not found
 

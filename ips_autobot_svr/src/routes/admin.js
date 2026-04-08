@@ -1,6 +1,6 @@
 const express = require('express');
 const { decryptPasswordFields } = require('../middleware/decryptPassword');
-const { authMiddleware, requireAdmin } = require('../middleware/auth');
+const { authMiddleware, requireAdmin, requireSuperAdmin } = require('../middleware/auth');
 const adminController = require('../controllers/adminController');
 
 const router = express.Router();
@@ -23,7 +23,7 @@ const router = express.Router();
  *               passwordEncrypted: { type: string, description: RSA encrypted password }
  *     responses:
  *       200:
- *         description: Login success, returns JWT and admin info
+ *         description: Login success, returns JWT and admin info (includes admin_type)
  *       401:
  *         description: Invalid credentials
  */
@@ -48,7 +48,7 @@ router.post('/login', decryptPasswordFields, adminController.login);
  *         schema: { type: string }
  *     responses:
  *       200:
- *         description: Admin list
+ *         description: Admin list (super admin only)
  *   post:
  *     summary: Create admin (admin only)
  *     tags: [Admin]
@@ -62,16 +62,17 @@ router.post('/login', decryptPasswordFields, adminController.login);
  *             required: [username, passwordEncrypted]
  *             properties:
  *               username: { type: string }
+ *               admin_type: { type: integer, enum: [0, 1], description: "0=super admin, 1=normal admin" }
  *               passwordEncrypted: { type: string }
  *               phone: { type: string }
  *     responses:
  *       201:
- *         description: Admin created
+ *         description: Admin created (super admin only)
  *       401:
  *         description: Unauthorized
  */
 router.get('/', authMiddleware, requireAdmin, adminController.listAdmins);
-router.post('/', authMiddleware, requireAdmin, decryptPasswordFields, adminController.createAdmin);
+router.post('/', authMiddleware, requireSuperAdmin, decryptPasswordFields, adminController.createAdmin);
 
 /**
  * @openapi
@@ -93,7 +94,7 @@ router.post('/', authMiddleware, requireAdmin, decryptPasswordFields, adminContr
  *       404:
  *         description: Admin not found
  */
-router.delete('/:id', authMiddleware, requireAdmin, adminController.deleteAdmin);
+router.delete('/:id', authMiddleware, requireSuperAdmin, adminController.deleteAdmin);
 
 /**
  * @openapi

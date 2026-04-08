@@ -83,6 +83,7 @@ npm run dev
 
 4. **数据库**  
    - 表结构见 `src/db/schema.sql`。
+   - **进入 MySQL 控制台**（账号、端口、Docker 命令）：见 `docs/MYSQL.md`。
    - 若改动了 schema，需在库中执行相应 SQL 或扩展 `scripts/init-db.js`（注意幂等与已有数据）。
 
 ---
@@ -91,11 +92,12 @@ npm run dev
 
 | 命令 | 说明 |
 |------|------|
-|`docker-compose up -d --build`|构建docker|docker compose build --build-arg NODE_IMAGE=docker.1ms.run/node:18-alpine
+| `docker compose up -d --build` | 启动依赖（含 MySQL）；构建镜像可加 `--build` |
 | `npm start` | 生产方式启动：`node src/server.js` |
 | `npm run dev` | 开发方式启动：nodemon 监听 `src/` |
 | `npm run db:init` | 执行 `src/db/schema.sql` 初始化表 |
-| `npm run db:seed` | 创建初始管理员（用户名 admin，密码 admin123），已存在则跳过 |
+| `npm run db:seed` | 创建初始管理员（用户名 admin，密码 admin123）；已存在则确保为超级管理员 |
+| `npm run db:migrate-multi-app` | 智灵/翼飞多客户端 DDL（破坏性，先备份）；新库可直接 `db:init` |
 | `npm run docs:api-md` | 根据当前 OpenAPI 生成 `api.md` 与 `docs/openapi.json` |
 
 ---
@@ -103,5 +105,6 @@ npm run dev
 ## 与客户端对接
 
 - 接口清单与请求/响应格式以 **api.md** 和 **Swagger UI** 为准。
+- 多客户端：MAC / 充值 / 积分等接口需传 **`app`**（`zhiling` 或 `yifei`）；详见 [需求变更（多软件支持）](需求变更（多软件支持）.md)。
 - 认证：除登录、获取公钥、创建用户等公开接口外，其余需在请求头中带 `Authorization: Bearer <JWT>`。
 - 密码：所有涉及密码的 body 字段均传 RSA 加密后的字符串（通常为 Base64），不要传明文。

@@ -3,7 +3,7 @@
   "info": {
     "title": "ips_autobot_svr API",
     "version": "1.0.0",
-    "description": "Admin and user auth, logs, recharge APIs. Password fields use RSA encryption (GET /api/public-key)."
+    "description": "Admin and user auth, logs, recharge APIs. Multi-app zhiling/yifei — pass app where required. Password fields use RSA encryption (GET /api/public-key)."
   },
   "servers": [
     {
@@ -52,7 +52,7 @@
         },
         "responses": {
           "200": {
-            "description": "Login success, returns JWT and admin info"
+            "description": "Login success, returns JWT and admin info (includes admin_type)"
           },
           "401": {
             "description": "Invalid credentials"
@@ -98,7 +98,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Admin list"
+            "description": "Admin list (super admin only)"
           }
         }
       },
@@ -126,6 +126,14 @@
                   "username": {
                     "type": "string"
                   },
+                  "admin_type": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ],
+                    "description": "0=super admin, 1=normal admin"
+                  },
                   "passwordEncrypted": {
                     "type": "string"
                   },
@@ -139,7 +147,7 @@
         },
         "responses": {
           "201": {
-            "description": "Admin created"
+            "description": "Admin created (super admin only)"
           },
           "401": {
             "description": "Unauthorized"
@@ -238,6 +246,102 @@
                 "schema": {
                   "type": "string",
                   "description": "PEM format public key"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/client-settings.zip": {
+      "get": {
+        "summary": "Download bundled client settings archive",
+        "description": "Returns client_settings.zip from the application root (same folder as package.json), not process.cwd(). Requires user JWT in Authorization Bearer header; admin tokens are rejected.",
+        "tags": [
+          "Downloads"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ZIP file",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired token"
+          },
+          "403": {
+            "description": "User role required (admin JWT not allowed)"
+          },
+          "404": {
+            "description": "File not present on server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/client-settings-yifei.zip": {
+      "get": {
+        "summary": "Download yifei client settings archive",
+        "description": "Returns client_settings_yifei.zip from the application root (same folder as package.json). Requires user JWT in Authorization Bearer header; admin tokens are rejected.",
+        "tags": [
+          "Downloads"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "ZIP file",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, or expired token"
+          },
+          "403": {
+            "description": "User role required (admin JWT not allowed)"
+          },
+          "404": {
+            "description": "File not present on server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -371,9 +475,18 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "amount"
+                  "amount",
+                  "app"
                 ],
                 "properties": {
+                  "app": {
+                    "type": "string",
+                    "enum": [
+                      "zhiling",
+                      "yifei"
+                    ],
+                    "description": "Client app for recharge table"
+                  },
                   "user_id": {
                     "type": "integer"
                   },
@@ -417,6 +530,18 @@
           }
         ],
         "parameters": [
+          {
+            "in": "query",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zhiling",
+                "yifei"
+              ]
+            }
+          },
           {
             "in": "query",
             "name": "page",
@@ -471,6 +596,182 @@
         "responses": {
           "200": {
             "description": "Paginated recharge records"
+          }
+        }
+      }
+    },
+    "/api/score/change": {
+      "post": {
+        "summary": "Increase or deduct user score (admin only)",
+        "tags": [
+          "Score"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "change_type",
+                  "tier_days",
+                  "app"
+                ],
+                "properties": {
+                  "app": {
+                    "type": "string",
+                    "enum": [
+                      "zhiling",
+                      "yifei"
+                    ],
+                    "description": "Client app for score columns and score_record"
+                  },
+                  "user_id": {
+                    "type": "integer",
+                    "description": "Target user id (or use phone)"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Target user phone (or use user_id)"
+                  },
+                  "tier_days": {
+                    "type": "integer",
+                    "enum": [
+                      30,
+                      90,
+                      180,
+                      365
+                    ],
+                    "description": "Score tier days"
+                  },
+                  "score_change": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "description": "Optional override amount; defaults to selected tier score from users table for this app"
+                  },
+                  "change_type": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ],
+                    "description": "0=add, 1=deduct"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Score changed and record created"
+          },
+          "400": {
+            "description": "Bad request or insufficient score"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/score/records": {
+      "get": {
+        "summary": "List score records (admin sees all, user sees own)",
+        "tags": [
+          "Score"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zhiling",
+                "yifei"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          },
+          {
+            "in": "query",
+            "name": "user_id",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "username",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "phone",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "change_type",
+            "schema": {
+              "type": "integer",
+              "enum": [
+                0,
+                1
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "start_date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "end_date",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated score records"
           }
         }
       }
@@ -559,7 +860,65 @@
         ],
         "responses": {
           "200": {
-            "description": "User list"
+            "description": "User list",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "items": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "id": {
+                                "type": "integer"
+                              },
+                              "username": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "phone": {
+                                "type": "string"
+                              },
+                              "status": {
+                                "type": "integer"
+                              },
+                              "created_at": {
+                                "type": "string"
+                              },
+                              "last_login_at": {
+                                "type": "string",
+                                "nullable": true
+                              },
+                              "clients": {
+                                "type": "object",
+                                "description": "Per-app zhiling and yifei slices (MAC, score, tiers, member_type, member_expire_at)",
+                                "properties": {
+                                  "zhiling": {
+                                    "type": "object"
+                                  },
+                                  "yifei": {
+                                    "type": "object"
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       },
@@ -595,7 +954,7 @@
                       0,
                       1
                     ],
-                    "description": "0=normal 1=paid"
+                    "description": "Initial member_type for zhiling client only; yifei starts as 0"
                   }
                 }
               }
@@ -604,7 +963,7 @@
         },
         "responses": {
           "201": {
-            "description": "User created"
+            "description": "User created; response includes clients.zhiling and clients.yifei defaults"
           },
           "409": {
             "description": "Phone already registered"
@@ -646,13 +1005,83 @@
         },
         "responses": {
           "200": {
-            "description": "Login success, returns JWT and user info"
+            "description": "Login success; user object has shared fields and clients.zhiling / clients.yifei",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "token": {
+                          "type": "string"
+                        },
+                        "user": {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "integer"
+                            },
+                            "username": {
+                              "type": "string",
+                              "nullable": true
+                            },
+                            "phone": {
+                              "type": "string"
+                            },
+                            "status": {
+                              "type": "integer"
+                            },
+                            "created_at": {
+                              "type": "string"
+                            },
+                            "clients": {
+                              "type": "object"
+                            },
+                            "last_login_at": {
+                              "type": "string",
+                              "format": "date-time"
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
           "400": {
             "description": "Phone or username and password required"
           },
           "401": {
             "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/api/users/me": {
+      "get": {
+        "summary": "Get current user profile",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current user profile"
+          },
+          "401": {
+            "description": "Unauthorized"
           }
         }
       }
@@ -692,6 +1121,378 @@
         "responses": {
           "200": {
             "description": "Password updated"
+          }
+        }
+      }
+    },
+    "/api/users/mac": {
+      "get": {
+        "summary": "Get bound MAC for current user or admin-specified user",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zhiling",
+                "yifei"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "userId",
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Required when caller is admin"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current mac_addr for app or null"
+          },
+          "400": {
+            "description": "Missing userId for admin"
+          }
+        }
+      },
+      "put": {
+        "summary": "Bind or update MAC (globally unique)",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mac_addr",
+                  "app"
+                ],
+                "properties": {
+                  "app": {
+                    "type": "string",
+                    "enum": [
+                      "zhiling",
+                      "yifei"
+                    ]
+                  },
+                  "mac_addr": {
+                    "type": "string"
+                  },
+                  "userId": {
+                    "type": "integer",
+                    "description": "Admin only — target user id"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "MAC bound for app"
+          },
+          "400": {
+            "description": "Invalid MAC or missing userId for admin"
+          },
+          "409": {
+            "description": "MAC already used by another user"
+          }
+        }
+      }
+    },
+    "/api/users/mac/verify": {
+      "post": {
+        "summary": "Verify MAC matches bound value (user JWT only)",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "mac_addr",
+                  "app"
+                ],
+                "properties": {
+                  "app": {
+                    "type": "string",
+                    "enum": [
+                      "zhiling",
+                      "yifei"
+                    ]
+                  },
+                  "mac_addr": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "matched true/false per app; unbound returns matched false"
+          }
+        }
+      }
+    },
+    "/api/users/{id}/mac": {
+      "delete": {
+        "summary": "Unbind user MAC (super admin only)",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "Target user id"
+          },
+          {
+            "in": "query",
+            "name": "app",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zhiling",
+                "yifei"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "MAC cleared for app",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "code": {
+                      "type": "integer",
+                      "example": 0
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "mac_addr": {
+                          "type": "string",
+                          "nullable": true,
+                          "example": null
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Super admin required"
+          },
+          "404": {
+            "description": "User not found"
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "put": {
+        "summary": "Update user profile fields (admin only; normal admin has limited fields)",
+        "tags": [
+          "User"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "phone": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "integer",
+                    "enum": [
+                      0,
+                      1
+                    ]
+                  },
+                  "clients": {
+                    "type": "object",
+                    "properties": {
+                      "zhiling": {
+                        "type": "object",
+                        "description": "Super-admin fields for zhiling; member_expire_at editable by admin",
+                        "properties": {
+                          "member_type": {
+                            "type": "integer",
+                            "enum": [
+                              0,
+                              1
+                            ]
+                          },
+                          "member_expire_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "member_expire_days": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "member_reduce_days": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "30d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "90d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "180d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "365d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "mac_addr": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      },
+                      "yifei": {
+                        "type": "object",
+                        "properties": {
+                          "member_type": {
+                            "type": "integer",
+                            "enum": [
+                              0,
+                              1
+                            ]
+                          },
+                          "member_expire_at": {
+                            "type": "string",
+                            "format": "date-time",
+                            "nullable": true
+                          },
+                          "member_expire_days": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "member_reduce_days": {
+                            "type": "integer",
+                            "minimum": 1
+                          },
+                          "score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "30d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "90d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "180d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "365d_score": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "mac_addr": {
+                            "type": "string",
+                            "nullable": true
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User updated; data includes clients"
+          },
+          "403": {
+            "description": "Admin required"
           }
         }
       }

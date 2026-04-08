@@ -1,0 +1,12 @@
+# 生产环境覆盖：不对外暴露 MySQL，应用仅监听本机（由 Nginx 反代）
+# 使用：docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+#
+# 请在服务器复制 .env.production.example 为 .env 并填写强密码与 JWT_SECRET
+
+services:
+  mysql:
+    ports: []
+
+  app:
+    ports:
+      - "127.0.0.1:3000:3000"

@@ -17,8 +17,9 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
- *             required: [amount]
+ *             required: [amount, app]
  *             properties:
+ *               app: { type: string, enum: [zhiling, yifei], description: Client app for recharge table }
  *               user_id: { type: integer }
  *               username: { type: string, description: "phone or username" }
  *               amount: { type: number }
@@ -39,6 +40,10 @@ router.post('/', authMiddleware, requireUserOrAdmin, rechargeController.createRe
  *     tags: [Recharge]
  *     security: [{ bearerAuth: [] }]
  *     parameters:
+ *       - in: query
+ *         name: app
+ *         required: true
+ *         schema: { type: string, enum: [zhiling, yifei] }
  *       - in: query
  *         name: page
  *         schema: { type: integer, default: 1 }

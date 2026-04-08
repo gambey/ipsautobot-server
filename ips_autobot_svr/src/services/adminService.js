@@ -5,7 +5,7 @@ const SALT_ROUNDS = 10;
 
 async function findByUsername(username) {
   const [rows] = await pool.query(
-    'SELECT id, username, password_hash, phone, created_at, last_login_at FROM admins WHERE username = ?',
+    'SELECT id, username, password_hash, admin_type, phone, created_at, last_login_at FROM admins WHERE username = ?',
     [username]
   );
   return rows[0] || null;
@@ -13,7 +13,7 @@ async function findByUsername(username) {
 
 async function findById(id) {
   const [rows] = await pool.query(
-    'SELECT id, username, phone, created_at, last_login_at FROM admins WHERE id = ?',
+    'SELECT id, username, admin_type, phone, created_at, last_login_at FROM admins WHERE id = ?',
     [id]
   );
   return rows[0] || null;
@@ -34,7 +34,7 @@ async function list({ page = 1, limit = 20, username }) {
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
 
   const [rows] = await pool.query(
-    `SELECT id, username, phone, created_at, last_login_at
+    `SELECT id, username, admin_type, phone, created_at, last_login_at
      FROM admins
      ${whereSql}
      ORDER BY created_at ASC
@@ -50,11 +50,11 @@ async function list({ page = 1, limit = 20, username }) {
   return { items: rows, total, page: safePage, limit: safeLimit };
 }
 
-async function create({ username, password, phone }) {
+async function create({ username, password, phone, adminType = 1 }) {
   const hash = await bcrypt.hash(password, SALT_ROUNDS);
   const [result] = await pool.query(
-    'INSERT INTO admins (username, password_hash, phone) VALUES (?, ?, ?)',
-    [username, hash, phone || null]
+    'INSERT INTO admins (username, password_hash, admin_type, phone) VALUES (?, ?, ?, ?)',
+    [username, hash, adminType, phone || null]
   );
   return result.insertId;
 }

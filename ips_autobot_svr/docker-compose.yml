@@ -3,15 +3,15 @@ services:
     image: mysql:8.0
     container_name: ips_autobot_mysql
     environment:
-      MYSQL_ROOT_PASSWORD: gR7iKWTvQLLqhhwn
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-gR7iKWTvQLLqhhwn}
       MYSQL_DATABASE: ips_autobot
     ports:
-      - "3306:3306"
+      - "3308:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-pgR7iKWTvQLLqhhwn"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p\"$$MYSQL_ROOT_PASSWORD\" || exit 1"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,24 +22,28 @@ services:
     build: .
     container_name: ips_autobot_svr
     ports:
-      - "3000:3000"
+      - "3002:3000"
     environment:
       NODE_ENV: production
       PORT: 3000
       DB_HOST: mysql
       DB_PORT: 3306
       DB_USER: root
-      DB_PASSWORD: gR7iKWTvQLLqhhwn
+      DB_PASSWORD: ${MYSQL_ROOT_PASSWORD:-gR7iKWTvQLLqhhwn}
       DB_NAME: ips_autobot
       JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-      JWT_EXPIRES_IN: 7d
-      LOG_RETENTION_DAYS: 30
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+      CORS_ORIGIN: ${CORS_ORIGIN:-}
     depends_on:
       mysql:
         condition: service_healthy
     restart: unless-stopped
     volumes:
       - app_logs:/app/logs
+      # 宿主机上的 zip 覆盖镜像内 COPY，更新本文件后无需 docker build（覆盖同名路径）
+      - ./client_settings.zip:/app/client_settings.zip:ro
+      - ./client_settings_yifei.zip:/app/client_settings_yifei.zip:ro
     networks:
       - appnet
 

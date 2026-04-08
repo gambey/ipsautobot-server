@@ -5,7 +5,8 @@ const definition = {
   info: {
     title: 'ips_autobot_svr API',
     version: '1.0.0',
-    description: 'Admin and user auth, logs, recharge APIs. Password fields use RSA encryption (GET /api/public-key).',
+    description:
+      'Admin and user auth, logs, recharge APIs. Multi-app zhiling/yifei — pass app where required. Password fields use RSA encryption (GET /api/public-key).',
   },
   servers: [
     { url: 'http://localhost:3000', description: 'Development' },

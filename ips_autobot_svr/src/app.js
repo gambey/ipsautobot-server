@@ -9,6 +9,8 @@ const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/user');
 const logsRoutes = require('./routes/logs');
 const rechargeRoutes = require('./routes/recharge');
+const scoreRoutes = require('./routes/score');
+const downloadsRoutes = require('./routes/downloads');
 const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
@@ -29,6 +31,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/logs', logsRoutes);
 app.use('/api/recharge', rechargeRoutes);
+app.use('/api/score', scoreRoutes);
+app.use('/api', downloadsRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true }));
 

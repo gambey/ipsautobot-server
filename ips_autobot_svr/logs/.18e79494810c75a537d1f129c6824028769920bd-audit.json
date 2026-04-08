@@ -14,6 +14,11 @@
             "date": 1773362263625,
             "name": "E:\\workspace\\ipspool\\server\\ips_autobot_svr\\logs\\admin-login-2026-03-13.log",
             "hash": "bc58ad54f4e8ce64ecbfe488f95a552404036caa11de07821b95692f8cdaf20d"
+        },
+        {
+            "date": 1774313257997,
+            "name": "E:\\workspace\\ipspool\\server\\ips_autobot_svr\\logs\\admin-login-2026-03-24.log",
+            "hash": "824fdcb18a35915f8be129590cc61d22e5d90726016a9b2982386247bde50a94"
         }
     ],
     "hashType": "sha256"

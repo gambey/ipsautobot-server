@@ -7,6 +7,8 @@ const pool = mysql.createPool({
   user: config.db.user,
   password: config.db.password,
   database: config.db.database,
+  // Keep DATETIME as DB strings to avoid timezone conversion drift (e.g. 23:59:59 -> 07:59:59).
+  dateStrings: true,
   waitForConnections: config.db.waitForConnections,
   connectionLimit: config.db.connectionLimit,
   queueLimit: config.db.queueLimit,

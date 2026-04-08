@@ -91,8 +91,9 @@ Controller → Service → mysql2 连接池 → MySQL
 ## 数据库表关系
 
 - **admins**：管理员账号（用户名、密码哈希、手机号、创建/最后登录时间）。
-- **users**：用户账号（手机号、密码哈希、登录 IP、最后登录时间、会员类型、到期时间、状态）。
-- **recharge_records**：充值记录，`user_id` 外键关联 `users.id`，冗余 `username`（如手机号）。
+- **users**：用户账号（手机号、密码哈希、登录 IP、最后登录时间、状态）；**智灵/翼飞**各自独立的 `member_type`、`member_expire_at`、`score`、MAC、积分档位等列（`_zhiling` / `_yifei` 后缀）。
+- **recharge_records_zhiling** / **recharge_records_yifei**：分客户端充值记录，`user_id` 外键关联 `users.id`，冗余 `username`。
+- **score_record**：积分变动流水，含 **`client_app`**（`zhiling` | `yifei`）。
 - **admin_login_logs**：管理员登录流水（成功/失败、IP、时间）。
 - **user_login_logs**：用户登录流水（成功/失败、IP、时间）。
 

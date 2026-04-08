@@ -1,8 +1,15 @@
 const rechargeService = require('../services/rechargeService');
 const userService = require('../services/userService');
+const { parseApp } = require('../utils/clientApp');
 
 async function createRecord(req, res, next) {
   try {
+    let app;
+    try {
+      app = parseApp(req.body.app || req.query.app, { required: true });
+    } catch (e) {
+      return res.status(e.statusCode || 400).json({ code: e.statusCode || 400, message: e.message });
+    }
     const { user_id: userId, username: bodyUsername, amount, result } = req.body;
     const uid = userId != null ? parseInt(userId, 10) : null;
     if (!uid && !bodyUsername) {
@@ -22,17 +29,14 @@ async function createRecord(req, res, next) {
       if (!user) return res.status(404).json({ code: 404, message: 'User not found' });
       uidFinal = user.id;
     }
-    const id = await rechargeService.create({
+    const id = await rechargeService.create(app, {
       userId: uidFinal,
       username: usernameFinal,
       amount: parseFloat(amount),
       result: result !== undefined ? result : 1,
     });
-    const [rows] = await require('../config/db').query(
-      'SELECT id, user_id, username, recharge_date, amount, result, created_at FROM recharge_records WHERE id = ?',
-      [id]
-    );
-    res.status(201).json({ code: 0, data: rows[0] });
+    const row = await rechargeService.findById(app, id);
+    res.status(201).json({ code: 0, data: { ...row, app } });
   } catch (err) {
     next(err);
   }
@@ -40,6 +44,12 @@ async function createRecord(req, res, next) {
 
 async function list(req, res, next) {
   try {
+    let app;
+    try {
+      app = parseApp(req.query.app, { required: true });
+    } catch (e) {
+      return res.status(e.statusCode || 400).json({ code: e.statusCode || 400, message: e.message });
+    }
     const page = parseInt(req.query.page, 10) || 1;
     const limit = parseInt(req.query.limit, 10) || 20;
     const filters = {
@@ -52,7 +62,7 @@ async function list(req, res, next) {
     if (isUser) {
       filters.user_id = String(req.auth.id);
     }
-    const data = await rechargeService.list(page, limit, filters);
+    const data = await rechargeService.list(app, page, limit, filters);
     res.json({ code: 0, data });
   } catch (err) {
     next(err);
